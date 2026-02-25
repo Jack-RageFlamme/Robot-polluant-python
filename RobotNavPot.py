@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+Created on Tue Feb 24 13:29:55 2026
+
+@author: mathi
+
 Way Point navigtion
 
 (c) S. Bertrand
@@ -16,7 +20,7 @@ import Potential
 # robot
 V =2.3  
 a = 25   
-n = 5 
+n = 5    
 theta_c = 0.0 
 
 x0 = 0
@@ -25,7 +29,7 @@ theta0 = 0
 robot = rob.Robot(x0, y0, theta0)
 
 # potential
-pot = Potential.Potential(difficulty=1, random=False)
+pot = Potential.Potential(difficulty=1, random=True)
 
 # position control loop: gain and timer
 kpPos = 0.8
@@ -54,6 +58,10 @@ thetar = 0.0
 omegar = 0.0
 theta_c = 0.0  
 
+State = 0
+max_poll = 0
+seuil = 302
+
 firstIter = True
 
 # loop on simulation time
@@ -69,22 +77,28 @@ for t in simu.t:
             thetar = thetar + math.copysign(2*math.pi,robot.theta)        
 
     # orientation control loop
-    if timerOrientationCtrl.isEllapsed(t):
+    if timerOrientationCtrl.isEllapsed(t) :
         
-        Vr = V
-        
-        sin_n = np.sin(n * theta_c)
-        cos_n = np.cos(n * theta_c)
-        
-        denom_sq = sin_n**2 + (n**2) * cos_n**2
-        
-        numerateur = (1 + n**2) * sin_n**2 + 2 * (n**2) * cos_n**2
-        kappa = numerateur / (a * (denom_sq**1.5))
-        
-        omegar = Vr * kappa
-        
-        dtheta_dt = V / (a * np.sqrt(denom_sq))
-        theta_c += dtheta_dt * orientationCtrlPeriod
+        if potentialValue <= seuil :
+            Vr = V
+            
+            sin_n = np.sin(n * theta_c)
+            cos_n = np.cos(n * theta_c)
+            
+            denom_sq = sin_n**2 + (n**2) * cos_n**2
+            
+            numerateur = (1 + n**2) * sin_n**2 + 2 * (n**2) * cos_n**2
+            kappa = numerateur / (a * (denom_sq**1.5))
+            
+            omegar = Vr * kappa
+            
+            dtheta_dt = V / (a * np.sqrt(denom_sq))
+            theta_c += dtheta_dt * orientationCtrlPeriod
+            
+    
+        else :
+            Vr = 0
+            omegar = 0        
     
     # assign control inputs to robot
     robot.setV(Vr)
@@ -107,12 +121,12 @@ plt.close("all")
 fig,ax = simu.plotXY(1)
 pot.plot(noFigure=None, fig=fig, ax=ax)  # plot potential for verification of solution
 
-simu.plotXYTheta(2)
+#simu.plotXYTheta(2)
 #simu.plotVOmega(3)
 
-simu.plotPotential(4)
+#simu.plotPotential(4)
 
-simu.plotPotential3D(5)
+#simu.plotPotential3D(5)
 
 # show plots
 #plt.show()
