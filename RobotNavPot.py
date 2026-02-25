@@ -77,12 +77,6 @@ for t in simu.t:
 
     # orientation control loop
     if timerOrientationCtrl.isEllapsed(t):
-        
-        if pot.value([robot.x, robot.y]) >seuil and State == 0:
-            State = 1
-            pn = pot.value([robot.x, robot.y]) 
-            omegar = 0.5 
-        
         if State == 0 :
             # 1. Calculs basés sur le SINUS (pour commencer pile au centre 0,0)
             sin_n = np.sin(n * theta_c)
@@ -137,13 +131,24 @@ for t in simu.t:
                 omegar=np.pi/2
                 cpt+=1
                 Vr=0
-                print(cpt)
             else :
                 Vr=2
                 omegar=Vr/(3*(t2-t1))
-                            
+                
+                
+               
+        
+                    
+                
+            
+        
+        
+            
       
-    
+    if pot.value([robot.x, robot.y]) >seuil and State == 0:
+        State = 1
+        pn = pot.value([robot.x, robot.y]) 
+        omegar = 0.5 
     
     # integrate motion
     robot.integrateMotion(dt)
