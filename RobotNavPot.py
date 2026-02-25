@@ -14,35 +14,33 @@ import Timer as tmr
 import Potential
 
 # robot
-x0 = -20.0
-y0 = -20.0
-theta0 = np.pi/4.0
-robot = rob.Robot(x0, y0, theta0)
+V =2.3  
+a = 25   
+n = 5 
+theta_c = 0.0 
 
+x0 = 0
+y0 = 0
+theta0 = 0
+robot = rob.Robot(x0, y0, theta0)
 
 # potential
 pot = Potential.Potential(difficulty=1, random=False)
 
-
 # position control loop: gain and timer
 kpPos = 0.8
-positionCtrlPeriod = 0.2#0.01
+positionCtrlPeriod = 0.2
 timerPositionCtrl = tmr.Timer(positionCtrlPeriod)
 
 # orientation control loop: gain and timer
 kpOrient = 2.5
-orientationCtrlPeriod = 0.05#0.01
+orientationCtrlPeriod = 0.05
 timerOrientationCtrl = tmr.Timer(orientationCtrlPeriod)
-
-
 
 # list of way points list of [x coord, y coord]
 WPlist = [ [x0,y0] ]
-#threshold for change to next WP
 epsilonWP = 0.2
-# init WPManager
 WPManager = rob.WPManager(WPlist, epsilonWP)
-
 
 # duration of scenario and time step for numerical integration
 t0 = 0.0
@@ -50,44 +48,43 @@ tf = 200.0
 dt = 0.01
 simu = rob.RobotSimulation(robot, t0, tf, dt)
 
-
 # initialize control inputs
 Vr = 0.0
 thetar = 0.0
 omegar = 0.0
+theta_c = 0.0  
 
 firstIter = True
 
-
-
 # loop on simulation time
 for t in simu.t: 
-   
-
 
     # position control loop
     if timerPositionCtrl.isEllapsed(t):
-
         potentialValue = pot.value([robot.x, robot.y])
         
-        # velocity control input
-        Vr = 0.0
-        
-        
         # reference orientation
-        thetar = theta0
-        
-        
+        thetar = 0   
         if math.fabs(robot.theta-thetar)>math.pi:
             thetar = thetar + math.copysign(2*math.pi,robot.theta)        
-        
-        
-        
+
     # orientation control loop
     if timerOrientationCtrl.isEllapsed(t):
-        # angular velocity control input        
-        omegar = 0.0
-    
+        
+        Vr = V
+        
+        sin_n = np.sin(n * theta_c)
+        cos_n = np.cos(n * theta_c)
+        
+        denom_sq = sin_n**2 + (n**2) * cos_n**2
+        
+        numerateur = (1 + n**2) * sin_n**2 + 2 * (n**2) * cos_n**2
+        kappa = numerateur / (a * (denom_sq**1.5))
+        
+        omegar = Vr * kappa
+        
+        dtheta_dt = V / (a * np.sqrt(denom_sq))
+        theta_c += dtheta_dt * orientationCtrlPeriod
     
     # assign control inputs to robot
     robot.setV(Vr)
@@ -99,7 +96,7 @@ for t in simu.t:
     # store data to be plotted   
     simu.addData(robot, WPManager, Vr, thetar, omegar, pot.value([robot.x,robot.y]))
     
-    
+
 # end of loop on simulation time
 
 
@@ -115,16 +112,10 @@ simu.plotXYTheta(2)
 
 simu.plotPotential(4)
 
-
-
 simu.plotPotential3D(5)
-
 
 # show plots
 #plt.show()
-
-
-
 
 
 # # Animation *********************************
@@ -174,4 +165,3 @@ simu.plotPotential3D(5)
 # #interval=25
 
 # #ani.save('robot.mp4', fps=15)
-
