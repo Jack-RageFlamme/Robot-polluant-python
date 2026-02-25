@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Feb 24 13:29:55 2026
-
-@author: mathi
-
 Way Point navigtion
 
 (c) S. Bertrand
@@ -18,13 +14,16 @@ import Timer as tmr
 import Potential
 
 # robot
-V =2.3  
+V =2.3  # On ralentit pour que le robot puisse prendre les virages
 a = 25   
-n = 5    
-theta_c = 0.0 
+n = 3    # On commence par 4 pétales pour tester la stabilité
+theta_c = 0.0 # Notre angle de progression
+State = 0
+F=0
+seuil=200
 
-x0 = 0
-y0 = 0
+x0 =- 20
+y0 = -20
 theta0 = 0
 robot = rob.Robot(x0, y0, theta0)
 
@@ -56,16 +55,17 @@ simu = rob.RobotSimulation(robot, t0, tf, dt)
 Vr = 0.0
 thetar = 0.0
 omegar = 0.0
-theta_c = 0.0  
-
-State = 0
-max_poll = 0
-seuil = 302
+theta_c = 0.0  # NOUVEAU: On stocke l'angle de la courbe et on le fait avancer manuellement
 
 firstIter = True
-
+m=0
 # loop on simulation time
 for t in simu.t: 
+
+    if pot.value([robot.x, robot.y]) >seuil and State == 0:
+        State = 1
+        pn = pot.value([robot.x, robot.y]) # Amorce
+        omegar = 0.5 # On commence par un petit virage pour "chercher"
 
     # position control loop
     if timerPositionCtrl.isEllapsed(t):
@@ -77,36 +77,56 @@ for t in simu.t:
             thetar = thetar + math.copysign(2*math.pi,robot.theta)        
 
     # orientation control loop
-    if timerOrientationCtrl.isEllapsed(t) :
-        
-        if potentialValue <= seuil :
-            Vr = V
-            
+    if timerOrientationCtrl.isEllapsed(t):
+        if State == 0 :
+            # 1. Calculs basés sur le SINUS (pour commencer pile au centre 0,0)
             sin_n = np.sin(n * theta_c)
             cos_n = np.cos(n * theta_c)
-            
+        
+            # 2. Dénominateur au carré (attention, cos et sin sont inversés par rapport à avant !)
             denom_sq = sin_n**2 + (n**2) * cos_n**2
-            
+        
+            # 3. La vitesse linéaire est fixée
+            Vr = V
+        
+            # 4. Calcul de la courbure mathématique pour le sinus
             numerateur = (1 + n**2) * sin_n**2 + 2 * (n**2) * cos_n**2
             kappa = numerateur / (a * (denom_sq**1.5))
-            
+        
+            # 5. Vitesse angulaire envoyée au robot
             omegar = Vr * kappa
-            
+        
+            # 6. On fait avancer l'angle sur la courbe
             dtheta_dt = V / (a * np.sqrt(denom_sq))
             theta_c += dtheta_dt * orientationCtrlPeriod
             
-    
-        else :
-            Vr = 0
-            omegar = 0        
-    
-    # assign control inputs to robot
-    robot.setV(Vr)
-    robot.setOmega(omegar)    
-    
+        if State == 1:
+             pn1, pn = pn, pot.value([robot.x, robot.y])
+             
+           
+             if pn >=   pn1:
+               
+                 Vr = 2.5
+                 omegar = 0.0 
+             else:
+              
+                 Vr = Vr/4
+               
+                 sens = np.sign(omegar) if omegar != 0 else 1.0
+                 omegar =np.pi*3 * sens+omegar
+                 
+  
+             if pn > 313:
+                Vr, omegar = 0, 0
+                m=m+1
+                if m==1 :
+                    print("source trouvée !",t)
+
     # integrate motion
     robot.integrateMotion(dt)
-
+    # assign control inputs to robot
+    robot.setV(Vr)
+    robot.setOmega(omegar)  
     # store data to be plotted   
     simu.addData(robot, WPManager, Vr, thetar, omegar, pot.value([robot.x,robot.y]))
     
