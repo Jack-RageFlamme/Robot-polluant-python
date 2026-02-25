@@ -77,6 +77,12 @@ for t in simu.t:
 
     # orientation control loop
     if timerOrientationCtrl.isEllapsed(t):
+        
+        if pot.value([robot.x, robot.y]) >seuil and State == 0:
+            State = 1
+            pn = pot.value([robot.x, robot.y]) 
+            omegar = 0.5 
+        
         if State == 0 :
             # 1. Calculs basés sur le SINUS (pour commencer pile au centre 0,0)
             sin_n = np.sin(n * theta_c)
@@ -113,8 +119,7 @@ for t in simu.t:
                  Vr = Vr/4
                
                  sens = np.sign(omegar) if omegar != 0 else 1.0
-                 omegar =np.pi*3 * sens+omegar
-                 
+                 omegar = np.maximum(np.pi, np.pi * sens + omegar) * sens
   
              if pn > 313.19:
                 Vr, omegar = 0, 0
@@ -136,22 +141,10 @@ for t in simu.t:
             else :
                 Vr=2
                 omegar=Vr/(3*(t2-t1))
-                
-                
-               
-        
-                    
-                
-            
-        
-        
-            
+                            
       
-    if pot.value([robot.x, robot.y]) >seuil and State == 0:
-        State = 1
-        pn = pot.value([robot.x, robot.y]) 
-        omegar = 0.5 
-    Omegar.append(omegar)
+    
+    
     # integrate motion
     robot.integrateMotion(dt)
     # assign control inputs to robot
@@ -171,12 +164,12 @@ plt.close("all")
 fig,ax = simu.plotXY(1)
 pot.plot(noFigure=None, fig=fig, ax=ax)  # plot potential for verification of solution
 
-simu.plotXYTheta(2)
+#simu.plotXYTheta(2)
 #simu.plotVOmega(3)
 
-simu.plotPotential(4)
+#simu.plotPotential(4)
 
-simu.plotPotential3D(5)
+#simu.plotPotential3D(5)
 
 # show plots
 #plt.show()
