@@ -3,8 +3,9 @@
 Way Point navigtion
 
 (c) S. Bertrand
-"""
 
+"""
+Omegar=[]
 import math
 import Robot as rob
 import numpy as np
@@ -12,18 +13,21 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import Timer as tmr
 import Potential
-
+cpt=0
 # robot
-V =2.3  # On ralentit pour que le robot puisse prendre les virages
+V =2  # On ralentit pour que le robot puisse prendre les virages
 a = 25   
-n = 3    # On commence par 4 pétales pour tester la stabilité
+n = 5    # On commence par 4 pétales pour tester la stabilité
 theta_c = 0.0 # Notre angle de progression
 State = 0
 F=0
-seuil=200
+seuil=300
 
-x0 =- 20
-y0 = -20
+t1=0 
+t2=0
+
+x0 =0
+y0 = 0
 theta0 = 0
 robot = rob.Robot(x0, y0, theta0)
 
@@ -62,11 +66,6 @@ m=0
 # loop on simulation time
 for t in simu.t: 
 
-    if pot.value([robot.x, robot.y]) >seuil and State == 0:
-        State = 1
-        pn = pot.value([robot.x, robot.y]) # Amorce
-        omegar = 0.5 # On commence par un petit virage pour "chercher"
-
     # position control loop
     if timerPositionCtrl.isEllapsed(t):
         potentialValue = pot.value([robot.x, robot.y])
@@ -95,6 +94,7 @@ for t in simu.t:
         
             # 5. Vitesse angulaire envoyée au robot
             omegar = Vr * kappa
+
         
             # 6. On fait avancer l'angle sur la courbe
             dtheta_dt = V / (a * np.sqrt(denom_sq))
@@ -116,12 +116,42 @@ for t in simu.t:
                  omegar =np.pi*3 * sens+omegar
                  
   
-             if pn > 313:
+             if pn > 313.19:
                 Vr, omegar = 0, 0
                 m=m+1
                 if m==1 :
-                    print("source trouvée !",t)
-
+                    print("source trouvée ! en ",t," s","Les coordonneés sont ",robot.x,robot.y)
+                    State=2
+                    t1=t
+        if State==2 :
+            if pot.value([robot.x, robot.y])>seuil and cpt ==0:
+                Vr=3
+                t2=t
+            elif pot.value([robot.x, robot.y])<=seuil and cpt!=100 :
+                
+                omegar=np.pi/2
+                cpt+=1
+                Vr=0
+                print(cpt)
+            else :
+                Vr=2
+                omegar=Vr/(3*(t2-t1))
+                
+                
+               
+        
+                    
+                
+            
+        
+        
+            
+      
+    if pot.value([robot.x, robot.y]) >seuil and State == 0:
+        State = 1
+        pn = pot.value([robot.x, robot.y]) 
+        omegar = 0.5 
+    Omegar.append(omegar)
     # integrate motion
     robot.integrateMotion(dt)
     # assign control inputs to robot
@@ -141,12 +171,12 @@ plt.close("all")
 fig,ax = simu.plotXY(1)
 pot.plot(noFigure=None, fig=fig, ax=ax)  # plot potential for verification of solution
 
-#simu.plotXYTheta(2)
+simu.plotXYTheta(2)
 #simu.plotVOmega(3)
 
-#simu.plotPotential(4)
+simu.plotPotential(4)
 
-#simu.plotPotential3D(5)
+simu.plotPotential3D(5)
 
 # show plots
 #plt.show()
